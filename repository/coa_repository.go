@@ -141,9 +141,10 @@ func (r *coaRepository) GetLatestCodeByParentName(ctx context.Context, parentNam
 	nextCode := fmt.Sprintf(format, prefix, nextNumber)
 
 	return &model.CoaResponse{
-		Code:  nextCode,
-		Type:  parentType.Type,
-		Level: parent.Level + 1,
+		Code:     nextCode,
+		Type:     parentType.Type,
+		Level:    parent.Level + 1,
+		ParentID: parent.ID,
 	}, nil
 }
 

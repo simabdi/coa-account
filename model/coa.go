@@ -17,8 +17,9 @@ type (
 	}
 
 	CoaResponse struct {
-		Code  string
-		Type  string
-		Level int
+		Code     string
+		Type     string
+		Level    int
+		ParentID uint
 	}
 )
