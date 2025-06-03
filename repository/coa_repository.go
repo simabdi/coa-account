@@ -16,7 +16,7 @@ type CoaRepository interface {
 	GetByCode(ctx context.Context, code string) (*model.Coa, error)
 	GetByName(ctx context.Context, name string) (*model.Coa, error)
 	GetByParentID(ctx context.Context, parentID *uint) ([]*model.Coa, error)
-	GetLatestCodeByParentName(ctx context.Context, parentName string) (*string, error)
+	GetLatestCodeByParentName(ctx context.Context, parentName string) (*model.CoaResponse, error)
 	Store(ctx context.Context, data *model.Coa) (*model.Coa, error)
 }
 
@@ -79,9 +79,19 @@ func (r *coaRepository) GetByParentID(ctx context.Context, parentID *uint) ([]*m
 	return children, err
 }
 
-func (r *coaRepository) GetLatestCodeByParentName(ctx context.Context, parentName string) (*string, error) {
+func (r *coaRepository) GetLatestCodeByParentName(ctx context.Context, parentName string) (*model.CoaResponse, error) {
 	var parent *model.Coa
 	err := r.db.WithContext(ctx).Where("name = ?", parentName).First(&parent).Error
+	if err != nil {
+		return nil, err
+	}
+
+	type ParentType struct {
+		Type string
+	}
+
+	var parentType ParentType
+	err = r.db.Table("coas").Select("type").Where("id = ?", parent.ID).Scan(&parentType).Error
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +140,11 @@ func (r *coaRepository) GetLatestCodeByParentName(ctx context.Context, parentNam
 	format := fmt.Sprintf("%%s%%0%dd", suffixLength)
 	nextCode := fmt.Sprintf(format, prefix, nextNumber)
 
-	return &nextCode, nil
+	return &model.CoaResponse{
+		Code:  nextCode,
+		Type:  parentType.Type,
+		Level: parent.Level + 1,
+	}, nil
 }
 
 func (r *coaRepository) Store(ctx context.Context, data *model.Coa) (*model.Coa, error) {
