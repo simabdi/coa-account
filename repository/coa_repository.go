@@ -18,6 +18,7 @@ type CoaRepository interface {
 	GetByParentID(ctx context.Context, parentID *uint) ([]*model.Coa, error)
 	GetLatestCodeByParentName(ctx context.Context, parentName string) (*model.CoaResponse, error)
 	Store(ctx context.Context, data *model.Coa) (*model.Coa, error)
+	BulkStore(ctx context.Context, data []*model.Coa) ([]*model.Coa, error)
 }
 
 type coaRepository struct {
@@ -140,6 +141,7 @@ func (r *coaRepository) GetLatestCodeByParentName(ctx context.Context, parentNam
 	format := fmt.Sprintf("%%s%%0%dd", suffixLength)
 	nextCode := fmt.Sprintf(format, prefix, nextNumber)
 
+	fmt.Println("DB instance coa GetLatestCodeByParentName: ", r.db.Statement.ConnPool)
 	return &model.CoaResponse{
 		Code:     nextCode,
 		Type:     parentType.Type,
@@ -154,5 +156,15 @@ func (r *coaRepository) Store(ctx context.Context, data *model.Coa) (*model.Coa,
 		return nil, err
 	}
 
+	return data, nil
+}
+
+func (r *coaRepository) BulkStore(ctx context.Context, data []*model.Coa) ([]*model.Coa, error) {
+	err := r.db.WithContext(ctx).Create(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("DB instance coa BulkStore: ", r.db.Statement.ConnPool)
 	return data, nil
 }
