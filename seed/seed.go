@@ -1,17 +1,67 @@
 package seed
 
 import (
+	"bytes"
+	_ "embed"
+	"errors"
+	"fmt"
 	"github.com/simabdi/coa-account/model"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
+//go:embed coa.xlsx
+var coaExcel []byte
+
+type COARow struct {
+	Code  string
+	Name  string
+	Type  string
+	Level int
+}
+
+// LoadCOAFromExcelBytes reads COA from embedded Excel file
+func LoadCOAFromExcelBytes(data []byte) ([]COARow, error) {
+	var result []COARow
+
+	f, err := excelize.OpenReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, errors.New("failed to read Excel: " + err.Error())
+	}
+
+	rows, err := f.GetRows("Sheet1")
+	if err != nil {
+		return nil, errors.New("failed to read rows: " + err.Error())
+	}
+
+	for i, row := range rows {
+		if i == 0 {
+			continue
+		}
+		if len(row) < 4 {
+			continue
+		}
+
+		level, _ := f.GetCellValue("Sheet1", fmt.Sprintf("D%d", i+1))
+		lvl := 0
+		fmt.Sscanf(level, "%d", &lvl)
+
+		result = append(result, COARow{
+			Code:  row[0],
+			Name:  row[1],
+			Type:  row[2],
+			Level: lvl,
+		})
+	}
+
+	return result, nil
+}
+
 func SeedCOA(db *gorm.DB) error {
-	raws, err := LoadCOAFromExcel("seed/coa.xlsx")
+	raws, err := LoadCOAFromExcelBytes(coaExcel)
 	if err != nil {
 		return err
 	}
-
-	db.Exec("DELETE FROM coas")
 
 	var insertedCoas []model.Coa
 	for _, r := range raws {
