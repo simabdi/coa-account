@@ -85,7 +85,7 @@ func (r *coaRepository) GetByParentID(ctx context.Context, parentID *uint) ([]*m
 
 func (r *coaRepository) GetLatestCodeByParentName(ctx context.Context, parentName string) (*model.CoaResponse, error) {
 	var parent *model.Coa
-	err := r.db.WithContext(ctx).Where("name = ?", parentName).First(&parent).Error
+	err := r.db.WithContext(ctx).Where("LOWER(name) = ?", strings.ToLower(parentName)).First(&parent).Error
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +105,10 @@ func (r *coaRepository) GetLatestCodeByParentName(ctx context.Context, parentNam
 		Where("parent_id = ?", parent.ID).
 		Order("code DESC").
 		First(&latestChild).Error
+
+	if err != nil {
+		return nil, err
+	}
 
 	var prefixLength, suffixLength int
 
@@ -184,49 +188,11 @@ func (r *coaRepository) GetLatestCodeByParentChild(ctx context.Context, parentNa
 		return nil, err
 	}
 
-	var prefixLength, suffixLength int
-
-	switch parent.Level {
-	case 2:
-		prefixLength = 2
-		suffixLength = 4
-	case 3:
-		prefixLength = 3
-		suffixLength = 3
-	case 4:
-		prefixLength = 4
-		suffixLength = 2
-	default:
-		return nil, fmt.Errorf("unsupported parent level: %d", parent.Level)
-	}
-
-	if len(parent.Code) < prefixLength {
-		return nil, fmt.Errorf("invalid parent code length")
-	}
-	prefix := parent.Code[:prefixLength]
-
-	var nextNumber int
-	if err == nil {
-		if len(latestChild.Code) < prefixLength {
-			return nil, fmt.Errorf("invalid child code length")
-		}
-		suffix := latestChild.Code[prefixLength:]
-		currentNum, _ := strconv.Atoi(suffix)
-		nextNumber = currentNum + 1
-	} else if errors.Is(err, gorm.ErrRecordNotFound) {
-		nextNumber = 1
-	} else {
-		return nil, err
-	}
-
-	format := fmt.Sprintf("%%s%%0%dd", suffixLength)
-	nextCode := fmt.Sprintf(format, prefix, nextNumber)
-
-	fmt.Println("DB instance coa GetLatestCodeByParentCode: ", r.db.Statement.ConnPool)
 	return &model.CoaResponse{
-		Code:     nextCode,
+		ID:       latestChild.ID,
+		Code:     latestChild.Code,
 		Type:     parentType.Type,
-		Level:    parent.Level + 1,
+		Level:    latestChild.Level,
 		ParentID: parent.ID,
 	}, nil
 }

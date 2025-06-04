@@ -17,6 +17,7 @@ type (
 	}
 
 	CoaResponse struct {
+		ID       uint
 		Code     string
 		Type     string
 		Level    int
