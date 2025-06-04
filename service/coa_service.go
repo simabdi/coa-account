@@ -12,6 +12,7 @@ type CoaService interface {
 	FindByName(ctx context.Context, name string) (*model.Coa, error)
 	FindByParentID(ctx context.Context, parentID *uint) ([]*model.Coa, error)
 	FindLatestCodeByParentName(ctx context.Context, parentName string) (*model.CoaResponse, error)
+	FindLatestCodeByParentChild(ctx context.Context, parentName, childName string) (*model.CoaResponse, error)
 }
 
 type coaService struct {
@@ -55,4 +56,8 @@ func (s *coaService) FindByParentID(ctx context.Context, parentID *uint) ([]*mod
 
 func (s *coaService) FindLatestCodeByParentName(ctx context.Context, parentName string) (*model.CoaResponse, error) {
 	return s.repository.GetLatestCodeByParentName(ctx, parentName)
+}
+
+func (s *coaService) FindLatestCodeByParentChild(ctx context.Context, parentName, childName string) (*model.CoaResponse, error) {
+	return s.repository.GetLatestCodeByParentChild(ctx, parentName, childName)
 }
