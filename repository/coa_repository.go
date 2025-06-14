@@ -106,7 +106,7 @@ func (r *coaRepository) GetLatestCodeByParentName(ctx context.Context, parentNam
 		Order("code DESC").
 		First(&latestChild).Error
 
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
